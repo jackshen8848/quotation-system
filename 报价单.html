@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>广告图文店 - 自动报价单系统</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; background: #f0f2f5; color: #333; }
+.header { background: linear-gradient(135deg, #1a73e8, #0d47a1); color: #fff; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.header h1 { font-size: 22px; font-weight: 600; }
+.header .shop-info { font-size: 13px; opacity: 0.85; }
+.container { max-width: 1100px; margin: 20px auto; padding: 0 16px; }
+.card { background: #fff; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); margin-bottom: 16px; overflow: hidden; }
+.card-header { padding: 14px 20px; border-bottom: 1px solid #eee; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
+.card-header .icon { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+.icon-blue { background: #e3f2fd; color: #1a73e8; }
+.icon-green { background: #e8f5e9; color: #2e7d32; }
+.icon-orange { background: #fff3e0; color: #e65100; }
+.icon-purple { background: #f3e5f5; color: #7b1fa2; }
+.card-body { padding: 16px 20px; }
+.row { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; align-items: flex-end; }
+.row:last-child { margin-bottom: 0; }
+.form-group { display: flex; flex-direction: column; gap: 4px; }
+.form-group label { font-size: 12px; color: #666; font-weight: 500; }
+.form-group input, .form-group select, .form-group textarea { padding: 8px 10px; border: 1px solid #d0d5dd; border-radius: 6px; font-size: 13px; outline: none; transition: border 0.2s; font-family: inherit; }
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(26,115,232,0.1); }
+.form-group select { background: #fff; min-width: 100px; }
+.form-group textarea { resize: vertical; min-height: 60px; }
+.btn { padding: 8px 18px; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s; }
+.btn-primary { background: #1a73e8; color: #fff; }
+.btn-primary:hover { background: #1557b0; }
+.btn-success { background: #2e7d32; color: #fff; }
+.btn-success:hover { background: #1b5e20; }
+.btn-danger { background: #c62828; color: #fff; }
+.btn-danger:hover { background: #b71c1c; }
+.btn-outline { background: #fff; color: #1a73e8; border: 1px solid #1a73e8; }
+.btn-outline:hover { background: #e3f2fd; }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+.btn-xs { padding: 3px 8px; font-size: 11px; }
+
+/* Product selection area */
+.product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.product-tag { padding: 10px 12px; border: 1.5px solid #e0e0e0; border-radius: 8px; text-align: center; cursor: pointer; font-size: 13px; transition: all 0.2s; user-select: none; }
+.product-tag:hover { border-color: #1a73e8; background: #f5f8ff; }
+.product-tag.selected { border-color: #1a73e8; background: #e3f2fd; color: #0d47a1; font-weight: 600; }
+.product-tag .emoji { font-size: 20px; display: block; margin-bottom: 4px; }
+
+/* Quote items table */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+table th, table td { padding: 10px 8px; text-align: left; border-bottom: 1px solid #eee; }
+table th { background: #f8f9fa; font-weight: 600; color: #555; white-space: nowrap; font-size: 12px; }
+table td input { width: 60px; padding: 5px 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; text-align: center; }
+table td .qty-input { width: 70px; }
+table td .price-input { width: 80px; text-align: right; }
+table td .desc-input { width: 120px; text-align: left; }
+table td .spec-select { padding: 5px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; }
+.amount { font-weight: 600; color: #c62828; }
+.text-right { text-align: right; }
+.text-center { text-align: center; }
+
+/* Totals */
+.totals { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; padding: 12px 0; font-size: 14px; }
+.totals .line { display: flex; gap: 60px; justify-content: flex-end; padding: 2px 0; }
+.totals .grand-total { font-size: 20px; font-weight: 700; color: #c62828; border-top: 2px solid #c62828; padding-top: 8px; margin-top: 4px; }
+
+/* Print styles */
+@media print {
+  body { background: #fff; }
+  .header, .no-print, .card-header .toggle-icon, .product-grid { display: none !important; }
+  .container { max-width: 100%; margin: 0; padding: 0; }
+  .card { box-shadow: none; border: 1px solid #ddd; break-inside: avoid; margin-bottom: 8px; }
+  .card-header { cursor: default; }
+  table th { background: #eee !important; -webkit-print-color-adjust: exact; }
+  .btn { display: none !important; }
+}
+
+/* Customer info grid */
+.info-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+
+/* Notification */
+.toast { position: fixed; top: 20px; right: 20px; padding: 12px 20px; border-radius: 8px; color: #fff; font-size: 14px; z-index: 9999; animation: slideIn 0.3s ease; box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
+.toast-success { background: #2e7d32; }
+.toast-info { background: #1a73e8; }
+@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+/* Collapsible */
+.collapsed .card-body { display: none; }
+.collapsed .toggle-icon { transform: rotate(-90deg); }
+.toggle-icon { transition: transform 0.2s; display: inline-block; }
+
+.small-note { font-size: 11px; color: #999; margin-top: 4px; }
+.empty-hint { text-align: center; padding: 40px 20px; color: #999; }
+.empty-hint .big { font-size: 40px; display: block; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+
+<div class="header no-print">
+  <div>
+    <h1>🖨️ 广告图文店自动报价单</h1>
+    <div class="shop-info">快速生成专业报价 · 支持打印与导出</div>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <button class="btn btn-outline btn-sm" onclick="saveQuote()">💾 保存报价单</button>
+    <button class="btn btn-outline btn-sm" onclick="loadQuote()">📂 载入报价单</button>
+    <button class="btn btn-outline btn-sm" onclick="clearAll()">🗑️ 清空</button>
+    <button class="btn btn-success btn-sm" onclick="printQuote()">🖨️ 打印报价单</button>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Customer Info -->
+  <div class="card" id="customerCard">
+    <div class="card-header" onclick="toggleCard('customerCard')">
+      <span class="icon icon-blue">👤</span> 客户信息 <span class="toggle-icon">▼</span>
+    </div>
+    <div class="card-body">
+      <div class="info-grid">
+        <div class="form-group">
+          <label>客户名称 *</label>
+          <input type="text" id="custName" placeholder="请输入客户名称">
+        </div>
+        <div class="form-group">
+          <label>联系电话</label>
+          <input type="text" id="custPhone" placeholder="请输入电话">
+        </div>
+        <div class="form-group">
+          <label>公司名称</label>
+          <input type="text" id="custCompany" placeholder="请输入公司名称">
+        </div>
+        <div class="form-group">
+          <label>报价日期</label>
+          <input type="date" id="quoteDate">
+        </div>
+        <div class="form-group">
+          <label>报价有效期</label>
+          <select id="validity">
+            <option value="7">7天</option>
+            <option value="15">15天</option>
+            <option value="30" selected>30天</option>
+            <option value="60">60天</option>
+          </select>
+        </div>
+        <div class="form-group" style="grid-column: 1 / -1;">
+          <label>备注</label>
+          <textarea id="remark" placeholder="付款方式、交货时间等备注信息" rows="2"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Product Selection -->
+  <div class="card no-print" id="productCard">
+    <div class="card-header" onclick="toggleCard('productCard')">
+      <span class="icon icon-green">📦</span> 选择产品类型 <span class="toggle-icon">▼</span>
+    </div>
+    <div class="card-body">
+      <div class="product-grid" id="productGrid"></div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <button class="btn btn-primary btn-sm" onclick="addCustomItem()">➕ 添加自定义项目</button>
+        <span class="small-note">点击上方产品快速添加，或添加自定义产品</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quote Items -->
+  <div class="card" id="itemsCard">
+    <div class="card-header" onclick="toggleCard('itemsCard')">
+      <span class="icon icon-orange">📋</span> 报价项目清单 <span id="itemCount" style="color:#999;font-weight:400;">(0项)</span>
+      <span class="toggle-icon">▼</span>
+    </div>
+    <div class="card-body">
+      <div class="table-wrap">
+        <table id="itemsTable">
+          <thead>
+            <tr>
+              <th style="width:36px;">#</th>
+              <th>产品名称</th>
+              <th>规格/描述</th>
+              <th style="width:70px;">数量</th>
+              <th style="width:50px;">单位</th>
+              <th style="width:90px;">单价(元)</th>
+              <th style="width:100px;">小计(元)</th>
+              <th class="no-print" style="width:40px;"></th>
+            </tr>
+          </thead>
+          <tbody id="itemsBody">
+            <tr class="empty-hint-row">
+              <td colspan="8"><div class="empty-hint"><span class="big">📭</span>尚未添加报价项目<br>请在上方选择产品类型</div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Totals -->
+      <div class="totals">
+        <div class="line"><span>项目合计：</span><span id="subtotal">¥0.00</span></div>
+        <div class="line"><span>优惠/折扣：</span><span><input type="number" id="discount" value="0" style="width:80px;padding:4px 6px;border:1px solid #ddd;border-radius:4px;text-align:right;font-size:13px;" oninput="recalc()"> 元</span></div>
+        <div class="line grand-total"><span>报价总金额：</span><span id="grandTotal">¥0.00</span></div>
+        <div class="line" style="font-size:12px;color:#999;"><span>大写金额：</span><span id="grandTotalCN">零元整</span></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div id="toastContainer"></div>
+
+<!-- Hidden file input for loading -->
+<input type="file" id="fileInput" style="display:none;" accept=".json" onchange="handleFileLoad(event)">
+
+<script>
+// ==================== 产品库 ====================
+var products = [
+  { name: '名片', emoji: '💳', specs: '90×54mm 铜版纸300g', unit: '盒', basePrice: 30, priceDesc: '200张/盒 单面', variants: [
+    { label: '铜版纸300g单面', spec: '90×54mm 铜版纸300g 单面', price: 30 },
+    { label: '铜版纸300g双面', spec: '90×54mm 铜版纸300g 双面', price: 40 },
+    { label: '铜版纸覆膜单面', spec: '90×54mm 铜版纸覆膜 单面', price: 35 },
+    { label: '铜版纸覆膜双面', spec: '90×54mm 铜版纸覆膜 双面', price: 45 },
+    { label: '特种纸(高阶)', spec: '90×54mm 特种纸 双面', price: 80 },
+  ]},
+  { name: '宣传单/传单', emoji: '📄', specs: 'A4 157g铜版纸 双面', unit: '张', basePrice: 0.15, priceDesc: '起印500张', variants: [
+    { label: 'A4 128g铜版纸单面', spec: '210×285mm 128g铜版纸 单面', price: 0.12 },
+    { label: 'A4 128g铜版纸双面', spec: '210×285mm 128g铜版纸 双面', price: 0.18 },
+    { label: 'A4 157g铜版纸单面', spec: '210×285mm 157g铜版纸 单面', price: 0.15 },
+    { label: 'A4 157g铜版纸双面', spec: '210×285mm 157g铜版纸 双面', price: 0.22 },
+    { label: 'A5 157g铜版纸单面', spec: '148×210mm 157g铜版纸 单面', price: 0.10 },
+    { label: 'A5 157g铜版纸双面', spec: '148×210mm 157g铜版纸 双面', price: 0.15 },
+    { label: 'A3 200g铜版纸双面', spec: '420×285mm 200g铜版纸 双面', price: 0.50 },
+  ]},
+  { name: '海报/写真', emoji: '🖼️', specs: 'A3 高光相纸', unit: '张', basePrice: 8, priceDesc: '', variants: [
+    { label: 'A3 高光相纸', spec: 'A3 297×420mm 高光相纸', price: 8 },
+    { label: 'A3 PP纸', spec: 'A3 297×420mm PP纸', price: 10 },
+    { label: 'A2 高光相纸', spec: 'A2 420×594mm 高光相纸', price: 18 },
+    { label: 'A2 PP纸', spec: 'A2 420×594mm PP纸', price: 22 },
+    { label: 'A1 高光相纸', spec: 'A1 594×841mm 高光相纸', price: 35 },
+    { label: 'A1 PP纸', spec: 'A1 594×841mm PP纸', price: 40 },
+    { label: 'A0 高光相纸', spec: 'A0 841×1189mm 高光相纸', price: 70 },
+    { label: 'A0 背胶写真', spec: 'A0 841×1189mm 背胶', price: 80 },
+  ]},
+  { name: '横幅/条幅', emoji: '🎏', specs: '灯布 按平方计价', unit: '平方米', basePrice: 18, priceDesc: '宽×长计价', variants: [
+    { label: '普通灯布', spec: '灯布 普通精度', price: 18 },
+    { label: '加厚灯布', spec: '加厚灯布 户外', price: 25 },
+    { label: '无纺布', spec: '无纺布 室内', price: 15 },
+    { label: '旗帜布', spec: '旗帜布', price: 30 },
+  ]},
+  { name: '易拉宝/X展架', emoji: '📢', specs: '80×200cm 含架子', unit: '套', basePrice: 120, priceDesc: '', variants: [
+    { label: '易拉宝 80×200cm', spec: '80×200cm 易拉宝 含铝合金架', price: 120 },
+    { label: '易拉宝 85×200cm', spec: '85×200cm 易拉宝 含铝合金架', price: 130 },
+    { label: '易拉宝 120×200cm', spec: '120×200cm 易拉宝 含铝合金架', price: 180 },
+    { label: 'X展架 60×160cm', spec: '60×160cm X展架 含架子', price: 60 },
+    { label: 'X展架 80×180cm', spec: '80×180cm X展架 含架子', price: 80 },
+    { label: '门型展架 80×180cm', spec: '80×180cm 门型展架 含架子', price: 150 },
+  ]},
+  { name: '画册/样本', emoji: '📘', specs: 'A4 封面250g 内页157g', unit: '本', basePrice: 15, priceDesc: '骑马钉 16P', variants: [
+    { label: 'A4 8P 骑马钉', spec: 'A4 8P 封面250g铜版 内页157g铜版 骑马钉', price: 8 },
+    { label: 'A4 16P 骑马钉', spec: 'A4 16P 封面250g铜版 内页157g铜版 骑马钉', price: 15 },
+    { label: 'A4 24P 骑马钉', spec: 'A4 24P 封面250g铜版 内页157g铜版 骑马钉', price: 22 },
+    { label: 'A4 32P 骑马钉', spec: 'A4 32P 封面250g铜版 内页157g铜版 骑马钉', price: 28 },
+    { label: 'A4 48P 胶装', spec: 'A4 48P 封面250g铜版覆膜 内页157g铜版 胶装', price: 38 },
+    { label: 'A5 16P 骑马钉', spec: 'A5 16P 封面250g铜版 内页128g铜版 骑马钉', price: 10 },
+  ]},
+  { name: '不干胶/贴纸', emoji: '🏷️', specs: '铜版纸不干胶 A4', unit: '张', basePrice: 3, priceDesc: '', variants: [
+    { label: '铜版纸不干胶 A4', spec: 'A4 铜版纸不干胶 单面', price: 3 },
+    { label: '铜版纸不干胶 A3', spec: 'A3 铜版纸不干胶 单面', price: 6 },
+    { label: 'PVC不干胶 A4', spec: 'A4 PVC不干胶 单面', price: 5 },
+    { label: 'PVC不干胶 A3', spec: 'A3 PVC不干胶 单面', price: 10 },
+    { label: '透明不干胶 A4', spec: 'A4 透明不干胶', price: 6 },
+    { label: '覆膜不干胶 A4', spec: 'A4 铜版纸不干胶 覆亮膜', price: 4 },
+  ]},
+  { name: '喷绘(大尺寸)', emoji: '🏗️', specs: '户外灯布 按平方计价', unit: '平方米', basePrice: 15, priceDesc: '', variants: [
+    { label: '普通灯布喷绘', spec: '户外灯布喷绘', price: 15 },
+    { label: '高清灯布喷绘', spec: '户外灯布高清喷绘', price: 20 },
+    { label: '内打灯布喷绘', spec: '内打灯布喷绘', price: 28 },
+    { label: '车贴', spec: '车贴喷绘', price: 35 },
+    { label: '单透贴', spec: '单透贴喷绘', price: 40 },
+  ]},
+  { name: '门头/招牌', emoji: '🏪', specs: '铝塑板+亚克力字', unit: '套', basePrice: 800, priceDesc: '按平方估算', variants: [
+    { label: '铝塑板+亚克力字', spec: '铝塑板底板+亚克力水晶字', price: 800 },
+    { label: '铝塑板+PVC字', spec: '铝塑板底板+PVC字', price: 500 },
+    { label: '发光字(LED)', spec: 'LED发光字 亚克力面板', price: 600 },
+    { label: '喷绘布门头', spec: '喷绘布+方管框架', price: 100 },
+  ]},
+  { name: '信封/信纸', emoji: '✉️', specs: '120g双胶纸 标准信封', unit: '个', basePrice: 0.5, priceDesc: '起印1000个', variants: [
+    { label: '5号信封 120g双胶纸', spec: '220×110mm 5号信封 120g双胶纸', price: 0.5 },
+    { label: '7号信封 120g双胶纸', spec: '229×162mm 7号信封 120g双胶纸', price: 0.7 },
+    { label: '9号信封 120g双胶纸', spec: '324×229mm 9号信封 120g双胶纸', price: 1.0 },
+    { label: '信纸 A4 80g双胶纸', spec: 'A4信纸 80g双胶纸 单面', price: 0.08 },
+    { label: '信纸 A4 100g双胶纸', spec: 'A4信纸 100g双胶纸 单面', price: 0.10 },
+  ]},
+  { name: '手提袋/纸袋', emoji: '🛍️', specs: '250g白卡纸 覆膜', unit: '个', basePrice: 2.5, priceDesc: '起印500个', variants: [
+    { label: '小号 250g白卡覆膜', spec: '小号手提袋 250g白卡纸 覆膜', price: 2.5 },
+    { label: '中号 250g白卡覆膜', spec: '中号手提袋 250g白卡纸 覆膜', price: 3.5 },
+    { label: '大号 300g白卡覆膜', spec: '大号手提袋 300g白卡纸 覆膜', price: 5.0 },
+    { label: '无纺布手提袋', spec: '无纺布手提袋 丝印', price: 3.0 },
+  ]},
+  { name: '联单/收据', emoji: '📋', specs: '无碳复写纸 二联单', unit: '本', basePrice: 3, priceDesc: '50份/本', variants: [
+    { label: '二联单 无碳复写', spec: '无碳复写纸 二联单 50份/本', price: 3 },
+    { label: '三联单 无碳复写', spec: '无碳复写纸 三联单 50份/本', price: 4.5 },
+    { label: '送货单 三联', spec: '送货单 无碳复写纸 三联 50份/本', price: 5 },
+  ]},
+  { name: '不干胶刻字', emoji: '🔤', specs: '即时贴刻字 按厘米计价', unit: '厘米', basePrice: 0.5, priceDesc: '按字高计价', variants: [
+    { label: '即时贴刻字(小)', spec: '即时贴刻字 字高5-10cm', price: 0.5 },
+    { label: '即时贴刻字(中)', spec: '即时贴刻字 字高10-20cm', price: 0.8 },
+    { label: '即时贴刻字(大)', spec: '即时贴刻字 字高20cm以上', price: 1.2 },
+  ]},
+];
+
+// ==================== 报价项目列表 ====================
+var items = [];
+var itemIdCounter = 0;
+
+// ==================== 初始化 ====================
+function init() {
+  document.getElementById('quoteDate').value = new Date().toISOString().split('T')[0];
+  renderProductGrid();
+  // 尝试从 localStorage 恢复
+  var saved = localStorage.getItem('quotation_items');
+  if (saved) {
+    try {
+      var data = JSON.parse(saved);
+      items = data.items || [];
+      itemIdCounter = data.idCounter || 0;
+      document.getElementById('custName').value = data.custName || '';
+      document.getElementById('custPhone').value = data.custPhone || '';
+      document.getElementById('custCompany').value = data.custCompany || '';
+      document.getElementById('quoteDate').value = data.quoteDate || '';
+      document.getElementById('validity').value = data.validity || '30';
+      document.getElementById('remark').value = data.remark || '';
+      document.getElementById('discount').value = data.discount || 0;
+    } catch(e) {}
+  }
+  renderItems();
+  recalc();
+}
+
+// ==================== 产品选择网格 ====================
+function renderProductGrid() {
+  var grid = document.getElementById('productGrid');
+  var html = '';
+  for (var i = 0; i < products.length; i++) {
+    var p = products[i];
+    html += '<div class="product-tag" onclick="selectProduct(' + i + ')" title="' + p.specs + '">';
+    html += '<span class="emoji">' + p.emoji + '</span>';
+    html += p.name;
+    html += '</div>';
+  }
+  grid.innerHTML = html;
+}
+
+// ==================== 选择产品 ====================
+function selectProduct(idx) {
+  var p = products[idx];
+  
+  // 如果只有一个 variant，直接添加
+  if (!p.variants || p.variants.length === 0) {
+    addItem(p.name, p.specs || '', 1, p.unit, p.basePrice);
+    return;
+  }
+  
+  // 多个 variant，让用户选择
+  var options = p.variants;
+  // 弹出简易选择窗
+  var choiceHtml = '<div style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);z-index:9998;display:flex;align-items:center;justify-content:center;" onclick="this.remove()">';
+  choiceHtml += '<div style="background:#fff;border-radius:12px;padding:20px;max-width:500px;width:90%;max-height:70vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.2);" onclick="event.stopPropagation()">';
+  choiceHtml += '<h3 style="margin-bottom:4px;">' + p.emoji + ' ' + p.name + '</h3>';
+  choiceHtml += '<p style="color:#999;font-size:12px;margin-bottom:14px;">请选择具体规格</p>';
+  
+  for (var i = 0; i < options.length; i++) {
+    var o = options[i];
+    choiceHtml += '<div onclick="addItem(\'' + escapeHtml(p.name) + '\',\'' + escapeHtml(o.spec) + '\',1,\'' + p.unit + '\',' + o.price + ');closeProductModal();" style="padding:10px 14px;margin-bottom:6px;border:1px solid #eee;border-radius:8px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;transition:all 0.15s;" onmouseover="this.style.borderColor=\'#1a73e8\';this.style.background=\'#f5f8ff\'" onmouseout="this.style.borderColor=\'#eee\';this.style.background=\'#fff\'">';
+    choiceHtml += '<span style="font-size:13px;">' + o.label + '</span>';
+    choiceHtml += '<span style="font-weight:600;color:#1a73e8;">¥' + o.price.toFixed(2) + '/' + p.unit + '</span>';
+    choiceHtml += '</div>';
+  }
+  
+  choiceHtml += '<button class="btn btn-outline btn-sm" style="margin-top:8px;width:100%;" onclick="closeProductModal()">取消</button>';
+  choiceHtml += '</div></div>';
+  
+  var modal = document.createElement('div');
+  modal.id = 'productModal';
+  modal.innerHTML = choiceHtml;
+  document.body.appendChild(modal);
+}
+
+function closeProductModal() {
+  var modal = document.getElementById('productModal');
+  if (modal) modal.remove();
+}
+
+function escapeHtml(str) {
+  return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+}
+
+// ==================== 添加自定义项目 ====================
+function addCustomItem() {
+  addItem('自定义产品', '', 1, '个', 0);
+}
+
+// ==================== 添加报价项目 ====================
+function addItem(name, spec, qty, unit, price) {
+  items.push({
+    id: ++itemIdCounter,
+    name: name,
+    spec: spec,
+    qty: qty,
+    unit: unit,
+    price: price
+  });
+  renderItems();
+  recalc();
+  autoSave();
+  closeProductModal();
+}
+
+// ==================== 删除项目 ====================
+function removeItem(id) {
+  items = items.filter(function(it) { return it.id !== id; });
+  renderItems();
+  recalc();
+  autoSave();
+}
+
+// ==================== 渲染项目列表 ====================
+function renderItems() {
+  var tbody = document.getElementById('itemsBody');
+  document.getElementById('itemCount').textContent = '(' + items.length + '项)';
+  
+  if (items.length === 0) {
+    tbody.innerHTML = '<tr class="empty-hint-row"><td colspan="8"><div class="empty-hint"><span class="big">📭</span>尚未添加报价项目<br>请在上方选择产品类型</div></td></tr>';
+    return;
+  }
+  
+  var html = '';
+  for (var i = 0; i < items.length; i++) {
+    var it = items[i];
+    var amount = it.qty * it.price;
+    html += '<tr>';
+    html += '<td class="text-center">' + (i + 1) + '</td>';
+    html += '<td><input type="text" value="' + escAttr(it.name) + '" onchange="updateItem(' + it.id + ',\'name\',this.value)" class="desc-input" style="width:140px;"></td>';
+    html += '<td><input type="text" value="' + escAttr(it.spec) + '" onchange="updateItem(' + it.id + ',\'spec\',this.value)" class="desc-input" style="width:200px;"></td>';
+    html += '<td><input type="number" value="' + it.qty + '" onchange="updateItem(' + it.id + ',\'qty\',parseFloat(this.value)||0)" class="qty-input" min="0"></td>';
+    html += '<td><input type="text" value="' + escAttr(it.unit) + '" onchange="updateItem(' + it.id + ',\'unit\',this.value)" style="width:60px;"></td>';
+    html += '<td><input type="number" value="' + it.price + '" onchange="updateItem(' + it.id + ',\'price\',parseFloat(this.value)||0)" class="price-input" step="0.01" min="0"></td>';
+    html += '<td class="amount text-right">¥' + amount.toFixed(2) + '</td>';
+    html += '<td class="no-print text-center"><button class="btn btn-danger btn-xs" onclick="removeItem(' + it.id + ')" title="删除">✕</button></td>';
+    html += '</tr>';
+  }
+  tbody.innerHTML = html;
+}
+
+function escAttr(s) {
+  return (s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// ==================== 更新项目 ====================
+function updateItem(id, field, value) {
+  for (var i = 0; i < items.length; i++) {
+    if (items[i].id === id) {
+      items[i][field] = value;
+      break;
+    }
+  }
+  renderItems();
+  recalc();
+  autoSave();
+}
+
+// ==================== 重新计算金额 ====================
+function recalc() {
+  var subtotal = 0;
+  for (var i = 0; i < items.length; i++) {
+    subtotal += items[i].qty * items[i].price;
+  }
+  var discount = parseFloat(document.getElementById('discount').value) || 0;
+  var grandTotal = subtotal - discount;
+  if (grandTotal < 0) grandTotal = 0;
+  
+  document.getElementById('subtotal').textContent = '¥' + subtotal.toFixed(2);
+  document.getElementById('grandTotal').textContent = '¥' + grandTotal.toFixed(2);
+  document.getElementById('grandTotalCN').textContent = numToCN(grandTotal);
+}
+
+// ==================== 数字转大写 ====================
+function numToCN(num) {
+  if (isNaN(num) || num < 0) return '零元整';
+  num = Math.round(num * 100) / 100; // 精确到分
+  if (num === 0) return '零元整';
+
+  var digits = ['零', '壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖'];
+  var radices = ['', '拾', '佰', '仟'];
+  var bigRadices = ['', '万', '亿', '兆'];
+
+  var yuan = Math.floor(num);
+  var jiao = Math.floor((num - yuan) * 10 + 0.001);
+  var fen = Math.round((num - yuan) * 100) % 10;
+
+  function convertInteger(n) {
+    if (n === 0) return '零';
+    var s = '';
+    var zeroCount = 0;
+    var str = n.toString();
+    var len = str.length;
+    for (var i = 0; i < len; i++) {
+      var p = len - i - 1;
+      var d = parseInt(str[i]);
+      var quotient = Math.floor(p / 4);
+      var modulus = p % 4;
+      if (d === 0) {
+        zeroCount++;
+      } else {
+        if (zeroCount > 0) s += '零';
+        zeroCount = 0;
+        s += digits[d] + radices[modulus];
+      }
+      if (modulus === 0 && zeroCount < 4) {
+        s += bigRadices[quotient];
+        zeroCount = 0;
+      }
+    }
+    return s;
+  }
+
+  var result = convertInteger(yuan);
+  if (yuan > 0) result += '元';
+  else result = '零元';
+
+  if (jiao === 0 && fen === 0) {
+    result += '整';
+  } else {
+    if (jiao > 0) result += digits[jiao] + '角';
+    else result += '零';
+    if (fen > 0) result += digits[fen] + '分';
+  }
+
+  return result;
+}
+
+// ==================== 自动保存到 localStorage ====================
+function autoSave() {
+  var data = {
+    items: items,
+    idCounter: itemIdCounter,
+    custName: document.getElementById('custName').value,
+    custPhone: document.getElementById('custPhone').value,
+    custCompany: document.getElementById('custCompany').value,
+    quoteDate: document.getElementById('quoteDate').value,
+    validity: document.getElementById('validity').value,
+    remark: document.getElementById('remark').value,
+    discount: document.getElementById('discount').value
+  };
+  localStorage.setItem('quotation_items', JSON.stringify(data));
+}
+
+// ==================== 保存报价单为文件 ====================
+function saveQuote() {
+  autoSave();
+  var data = {
+    items: items,
+    idCounter: itemIdCounter,
+    custName: document.getElementById('custName').value,
+    custPhone: document.getElementById('custPhone').value,
+    custCompany: document.getElementById('custCompany').value,
+    quoteDate: document.getElementById('quoteDate').value,
+    validity: document.getElementById('validity').value,
+    remark: document.getElementById('remark').value,
+    discount: document.getElementById('discount').value,
+    exportTime: new Date().toISOString()
+  };
+  var blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  var cust = data.custName || '未命名客户';
+  var date = data.quoteDate || new Date().toISOString().split('T')[0];
+  a.href = url;
+  a.download = '报价单_' + cust + '_' + date + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('报价单已保存！', 'success');
+}
+
+// ==================== 加载报价单 ====================
+function loadQuote() {
+  document.getElementById('fileInput').click();
+}
+
+function handleFileLoad(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var data = JSON.parse(e.target.result);
+      items = data.items || [];
+      itemIdCounter = data.idCounter || 0;
+      document.getElementById('custName').value = data.custName || '';
+      document.getElementById('custPhone').value = data.custPhone || '';
+      document.getElementById('custCompany').value = data.custCompany || '';
+      document.getElementById('quoteDate').value = data.quoteDate || '';
+      document.getElementById('validity').value = data.validity || '30';
+      document.getElementById('remark').value = data.remark || '';
+      document.getElementById('discount').value = data.discount || 0;
+      renderItems();
+      recalc();
+      autoSave();
+      showToast('报价单已载入！', 'success');
+    } catch(err) {
+      showToast('文件格式错误，无法载入', 'info');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+// ==================== 清空 ====================
+function clearAll() {
+  if (!confirm('确定要清空所有报价数据吗？此操作不可恢复。')) return;
+  items = [];
+  itemIdCounter = 0;
+  document.getElementById('custName').value = '';
+  document.getElementById('custPhone').value = '';
+  document.getElementById('custCompany').value = '';
+  document.getElementById('remark').value = '';
+  document.getElementById('discount').value = 0;
+  renderItems();
+  recalc();
+  localStorage.removeItem('quotation_items');
+  showToast('已清空所有数据', 'info');
+}
+
+// ==================== 打印 ====================
+function printQuote() {
+  // 打印前确保客户信息已展开
+  var custCard = document.getElementById('customerCard');
+  var itemsCard = document.getElementById('itemsCard');
+  custCard.classList.remove('collapsed');
+  itemsCard.classList.remove('collapsed');
+  window.print();
+}
+
+// ==================== 折叠卡片 ====================
+function toggleCard(cardId) {
+  document.getElementById(cardId).classList.toggle('collapsed');
+}
+
+// ==================== Toast 提示 ====================
+function showToast(msg, type) {
+  var toast = document.createElement('div');
+  toast.className = 'toast toast-' + (type || 'info');
+  toast.textContent = msg;
+  document.getElementById('toastContainer').appendChild(toast);
+  setTimeout(function() {
+    toast.style.opacity = '0';
+    toast.style.transition = 'opacity 0.3s';
+    setTimeout(function() { toast.remove(); }, 300);
+  }, 2000);
+}
+
+// ==================== 监听客户信息变化自动保存 ====================
+document.addEventListener('DOMContentLoaded', function() {
+  init();
+  var inputs = document.querySelectorAll('#custName, #custPhone, #custCompany, #quoteDate, #validity, #remark, #discount');
+  for (var i = 0; i < inputs.length; i++) {
+    inputs[i].addEventListener('input', autoSave);
+    inputs[i].addEventListener('change', autoSave);
+  }
+});
+</script>
+
+</body>
+</html>
